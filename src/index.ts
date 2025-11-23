@@ -98,15 +98,36 @@ async function main(): Promise<void> {
     res.json({ status: 'ok', service: 'vikunja-mcp' });
   });
 
+  // Session storage for Streamable HTTP transports
+  const sessions = new Map<string, StreamableHTTPServerTransport>();
+
   // Streamable HTTP endpoint for MCP (OpenWebUI compatible)
   const mcpHandler = async (req: express.Request, res: express.Response) => {
     logger.info(`New ${req.method} request to /mcp endpoint`);
 
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-    });
+    // Get session ID from request header
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    await server.connect(transport);
+    // Get or create transport for this session
+    let transport = sessionId ? sessions.get(sessionId) : undefined;
+
+    if (!transport) {
+      // Create new transport for new sessions
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        onsessioninitialized: async (newSessionId: string) => {
+          logger.info(`Session initialized: ${newSessionId}`);
+          sessions.set(newSessionId, transport!);
+        },
+        onsessionclosed: async (closedSessionId: string) => {
+          logger.info(`Session closed: ${closedSessionId}`);
+          sessions.delete(closedSessionId);
+        },
+      });
+
+      await server.connect(transport);
+    }
+
     await transport.handleRequest(req, res, req.body);
   };
 
