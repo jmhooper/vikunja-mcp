@@ -4,11 +4,14 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies for native modules (better-sqlite3)
+RUN apk add --no-cache python3 make g++
+
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm ci
+# Install all dependencies (skip scripts since we don't have source code yet)
+RUN npm ci --ignore-scripts
 
 # Copy source code
 COPY . .
@@ -21,14 +24,14 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install runtime dependencies for native modules and dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init python3 make g++
 
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production && \
+# Install production dependencies only (skip scripts since we already built)
+RUN npm ci --only=production --ignore-scripts && \
     npm cache clean --force
 
 # Copy built application from builder
