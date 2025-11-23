@@ -7,6 +7,8 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { randomUUID } from 'crypto';
 import express from 'express';
 import dotenv from 'dotenv';
 
@@ -96,9 +98,26 @@ async function main(): Promise<void> {
     res.json({ status: 'ok', service: 'vikunja-mcp' });
   });
 
-  // SSE endpoint for MCP
+  // Streamable HTTP endpoint for MCP (OpenWebUI compatible)
+  const mcpHandler = async (req: express.Request, res: express.Response) => {
+    logger.info(`New ${req.method} request to /mcp endpoint`);
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+    });
+
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  };
+
+  // MCP endpoint handles GET (resumption), POST (messages), and DELETE (session termination)
+  app.get('/mcp', mcpHandler);
+  app.post('/mcp', express.json(), mcpHandler);
+  app.delete('/mcp', mcpHandler);
+
+  // Legacy SSE endpoint for backward compatibility
   app.get('/sse', async (req, res) => {
-    logger.info('New SSE connection established');
+    logger.info('New SSE connection established (legacy endpoint)');
 
     const transport = new SSEServerTransport('/message', res);
     await server.connect(transport);
@@ -109,7 +128,7 @@ async function main(): Promise<void> {
     });
   });
 
-  // POST endpoint for messages
+  // POST endpoint for messages (legacy SSE transport)
   app.post('/message', express.json(), async (req, res) => {
     // This endpoint is handled by the SSE transport internally
     res.status(200).end();
@@ -118,7 +137,8 @@ async function main(): Promise<void> {
   // Start Express server
   app.listen(port, () => {
     logger.info(`Vikunja MCP server started on port ${port}`);
-    logger.info(`SSE endpoint: http://localhost:${port}/sse`);
+    logger.info(`MCP endpoint (OpenWebUI): http://localhost:${port}/mcp`);
+    logger.info(`SSE endpoint (legacy): http://localhost:${port}/sse`);
 
     // Create secure configuration for logging
     const config = createSecureLogConfig({
