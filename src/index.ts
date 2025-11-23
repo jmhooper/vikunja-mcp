@@ -6,7 +6,8 @@
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express from 'express';
 import dotenv from 'dotenv';
 
 import { AuthManager } from './auth/AuthManager';
@@ -80,27 +81,56 @@ if (process.env.VIKUNJA_URL && process.env.VIKUNJA_API_TOKEN) {
   logger.info(`Using detected auth type: ${detectedAuthType}`);
 }
 
-// Start the server
+// Start the server with Express and SSE transport
 async function main(): Promise<void> {
   // Tools are already registered during module initialization
   // Wait for factory initialization to complete before starting server
   await factoryInitializationPromise;
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  // Create Express app
+  const app = express();
+  const port = process.env.PORT || 3000;
 
-  logger.info('Vikunja MCP server started');
-  
-  // Create secure configuration for logging
-  const config = createSecureLogConfig({
-    mode: process.env.MCP_MODE,
-    debug: process.env.DEBUG,
-    hasAuth: !!process.env.VIKUNJA_URL && !!process.env.VIKUNJA_API_TOKEN,
-    url: process.env.VIKUNJA_URL,
-    token: process.env.VIKUNJA_API_TOKEN,
+  // Health check endpoint
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'vikunja-mcp' });
   });
-  
-  logger.debug('Configuration loaded', config);
+
+  // SSE endpoint for MCP
+  app.get('/sse', async (req, res) => {
+    logger.info('New SSE connection established');
+
+    const transport = new SSEServerTransport('/message', res);
+    await server.connect(transport);
+
+    // Handle client disconnect
+    req.on('close', () => {
+      logger.info('SSE connection closed');
+    });
+  });
+
+  // POST endpoint for messages
+  app.post('/message', express.json(), async (req, res) => {
+    // This endpoint is handled by the SSE transport internally
+    res.status(200).end();
+  });
+
+  // Start Express server
+  app.listen(port, () => {
+    logger.info(`Vikunja MCP server started on port ${port}`);
+    logger.info(`SSE endpoint: http://localhost:${port}/sse`);
+
+    // Create secure configuration for logging
+    const config = createSecureLogConfig({
+      mode: process.env.MCP_MODE,
+      debug: process.env.DEBUG,
+      hasAuth: !!process.env.VIKUNJA_URL && !!process.env.VIKUNJA_API_TOKEN,
+      url: process.env.VIKUNJA_URL,
+      token: process.env.VIKUNJA_API_TOKEN,
+    });
+
+    logger.debug('Configuration loaded', config);
+  });
 }
 
 // Only start the server if not in test environment

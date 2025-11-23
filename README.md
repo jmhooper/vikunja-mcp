@@ -73,7 +73,34 @@ The easiest way to use vikunja-mcp is through npx in your Claude Desktop or othe
 }
 ```
 
-### Option 2: Local Development
+### Option 2: Docker (Recommended for Production)
+
+Run the MCP server as a Docker container:
+
+```bash
+# Using Docker Compose (easiest)
+docker-compose up -d
+
+# Or build and run manually
+docker build -t vikunja-mcp .
+docker run -d \
+  -p 3000:3000 \
+  -e VIKUNJA_URL=https://your-vikunja-instance.com/api/v1 \
+  -e VIKUNJA_API_TOKEN=your-api-token \
+  --name vikunja-mcp \
+  vikunja-mcp
+```
+
+Create a `.env` file for Docker Compose:
+
+```bash
+VIKUNJA_URL=https://your-vikunja-instance.com/api/v1
+VIKUNJA_API_TOKEN=your-api-token
+DEBUG=false
+LOG_LEVEL=info
+```
+
+### Option 3: Local Development
 
 For development or customization:
 
@@ -98,6 +125,50 @@ Then configure your MCP client:
   }
 }
 ```
+
+## Running the Server
+
+### SSE Transport (HTTP Server)
+
+The server now uses **Server-Sent Events (SSE)** transport over HTTP, running as an Express server:
+
+```bash
+# Start the server (production)
+npm start
+
+# Development mode with auto-reload
+npm run dev
+```
+
+The server will start on port 3000 by default (configurable via `PORT` environment variable):
+- **SSE endpoint**: `http://localhost:3000/sse`
+- **Health check**: `http://localhost:3000/health`
+
+### MCP Client Configuration for SSE
+
+To connect an MCP client to the SSE transport:
+
+```json
+{
+  "vikunja": {
+    "url": "http://localhost:3000/sse",
+    "transport": "sse",
+    "env": {
+      "VIKUNJA_URL": "https://your-vikunja-instance.com/api/v1",
+      "VIKUNJA_API_TOKEN": "your-api-token",
+      "PORT": "3000"
+    }
+  }
+}
+```
+
+### Environment Variables
+
+- `PORT` - Server port (default: 3000)
+- `VIKUNJA_URL` - Your Vikunja API URL
+- `VIKUNJA_API_TOKEN` - Your Vikunja API token or JWT
+- `DEBUG` - Enable debug logging (default: false)
+- `LOG_LEVEL` - Set log level (error, warn, info, debug)
 
 ## Configuration
 

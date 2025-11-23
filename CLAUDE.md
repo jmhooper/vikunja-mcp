@@ -13,6 +13,7 @@ npm run typecheck      # TypeScript compilation check
 
 ### Development Workflow
 ```bash
+npm start              # Start production server (requires build)
 npm run build          # TypeScript compilation to dist/
 npm run dev            # Watch mode development server with tsx
 npm run test:watch     # Jest in watch mode for TDD
@@ -35,10 +36,18 @@ npm run version:patch  # Bump patch version
 ### MCP Server Pattern
 This is a **Model Context Protocol (MCP) server** that exposes Vikunja task management operations as tools for AI assistants. The architecture follows a modular design with dependency injection:
 
-- **Entry Point**: `src/index.ts` - Initializes McpServer with stdio transport
+- **Entry Point**: `src/index.ts` - Initializes McpServer with SSE transport over Express
+- **Transport**: SSE (Server-Sent Events) over HTTP with Express server
 - **Tool Registry**: `src/tools/index.ts` - Centralized registration with conditional loading
 - **Client Factory**: `src/client.ts` - Session-aware Vikunja API client management
 - **Auth Manager**: Centralized authentication with JWT/API token auto-detection
+
+### Server Architecture
+- **Express Server**: HTTP server with SSE transport for MCP communication
+- **Endpoints**:
+  - `GET /sse` - SSE endpoint for MCP protocol communication
+  - `POST /message` - Message endpoint for MCP client requests
+  - `GET /health` - Health check endpoint for monitoring
 
 ### Tool Design Pattern
 Each Vikunja entity follows a consistent **subcommand-based pattern**:
