@@ -11,22 +11,22 @@ const mockTasks = [
 
 describe("getTasks", () => {
   describe("without a project filter", () => {
-    it("calls /tasks/all", async () => {
-      const client = createMockClient({ "/tasks/all": mockTasks });
+    it("calls /tasks", async () => {
+      const client = createMockClient({ "/tasks": mockTasks });
       await getTasks(client);
-      expect(client.request).toHaveBeenCalledWith(expect.stringContaining("/tasks/all"));
+      expect(client.request).toHaveBeenCalledWith(expect.stringContaining("/tasks"));
     });
 
     it("excludes done tasks by default", async () => {
-      const client = createMockClient({ "/tasks/all": mockTasks });
+      const client = createMockClient({ "/tasks": mockTasks });
       await getTasks(client);
       expect(client.request).toHaveBeenCalledWith(expect.stringContaining("filter="));
     });
 
     it("omits the filter when includeDone is true", async () => {
-      const client = createMockClient({ "/tasks/all": mockTasks });
+      const client = createMockClient({ "/tasks": mockTasks });
       await getTasks(client, { includeDone: true });
-      expect(client.request).toHaveBeenCalledWith("/tasks/all");
+      expect(client.request).toHaveBeenCalledWith("/tasks");
     });
   });
 
@@ -51,7 +51,7 @@ describe("getTasks", () => {
   });
 
   it("returns the tasks from the client", async () => {
-    const client = createMockClient({ "/tasks/all": mockTasks });
+    const client = createMockClient({ "/tasks": mockTasks });
     const result = await getTasks(client);
     expect(result).toEqual(mockTasks);
   });

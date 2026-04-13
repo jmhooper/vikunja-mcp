@@ -52,7 +52,7 @@ export async function getTasks(
     return client.request<Task[]>(`/projects/${projectId}/tasks${query}`);
   }
 
-  return client.request<Task[]>(`/tasks/all${query}`);
+  return client.request<Task[]>(`/tasks${query}`);
 }
 
 export async function createTask(
