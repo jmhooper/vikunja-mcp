@@ -9,15 +9,21 @@ export class VikunjaClient {
     this.apiToken = apiToken;
   }
 
-  async request<T>(path: string): Promise<T> {
+  async request<T>(
+    path: string,
+    options: { method?: string; body?: unknown } = {}
+  ): Promise<T> {
+    const { method = "GET", body } = options;
     const url = `${this.baseUrl}/api/v1${path}`;
-    logger.debug("vikunja request", { url });
+    logger.debug("vikunja request", { method, url });
 
     const res = await fetch(url, {
+      method,
       headers: {
         Authorization: `Bearer ${this.apiToken}`,
         "Content-Type": "application/json",
       },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
     if (!res.ok) {

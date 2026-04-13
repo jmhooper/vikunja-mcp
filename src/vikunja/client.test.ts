@@ -56,4 +56,34 @@ describe("VikunjaClient", () => {
 
     await expect(client.request("/projects")).rejects.toThrow("Vikunja API 401");
   });
+
+  it("sends the specified HTTP method", async () => {
+    let capturedMethod: string | null = null;
+    server.use(
+      http.put(`${BASE_URL}/api/v1/projects/1/tasks`, ({ request }) => {
+        capturedMethod = request.method;
+        return HttpResponse.json({});
+      })
+    );
+
+    const client = new VikunjaClient(BASE_URL, "test-token");
+    await client.request("/projects/1/tasks", { method: "PUT", body: { title: "Test" } });
+
+    expect(capturedMethod).toBe("PUT");
+  });
+
+  it("sends the body as JSON", async () => {
+    let capturedBody: unknown = null;
+    server.use(
+      http.put(`${BASE_URL}/api/v1/projects/1/tasks`, async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({});
+      })
+    );
+
+    const client = new VikunjaClient(BASE_URL, "test-token");
+    await client.request("/projects/1/tasks", { method: "PUT", body: { title: "Test" } });
+
+    expect(capturedBody).toEqual({ title: "Test" });
+  });
 });

@@ -20,6 +20,22 @@ export interface GetTasksOptions {
   includeDone?: boolean;
 }
 
+export interface CreateTaskInput {
+  project_id: number;
+  title: string;
+  description: string;
+  done?: boolean;
+  due_date?: string;
+}
+
+export interface UpdateTaskInput {
+  project_id: number;
+  title: string;
+  description: string;
+  done?: boolean;
+  due_date?: string;
+}
+
 export async function getTasks(
   client: VikunjaClient,
   options: GetTasksOptions = {}
@@ -37,4 +53,26 @@ export async function getTasks(
   }
 
   return client.request<Task[]>(`/tasks/all${query}`);
+}
+
+export async function createTask(
+  client: VikunjaClient,
+  input: CreateTaskInput
+): Promise<Task> {
+  const { project_id, ...body } = input;
+  return client.request<Task>(`/projects/${project_id}/tasks`, {
+    method: "PUT",
+    body,
+  });
+}
+
+export async function updateTask(
+  client: VikunjaClient,
+  taskId: number,
+  input: UpdateTaskInput
+): Promise<Task> {
+  return client.request<Task>(`/tasks/${taskId}`, {
+    method: "POST",
+    body: input,
+  });
 }
