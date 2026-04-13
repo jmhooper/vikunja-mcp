@@ -1,0 +1,10 @@
+services:
+  vikunja-mcp:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+      - VIKUNJA_BASE_URL=${VIKUNJA_BASE_URL}
+      - VIKUNJA_API_TOKEN=${VIKUNJA_API_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL}
