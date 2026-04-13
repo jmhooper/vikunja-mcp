@@ -6,13 +6,31 @@ export interface Task {
   title: string;
   description: string;
   done: boolean;
+  done_at: string | null;
   due_date: string | null;
-  priority: number;
   project_id: number;
+  bucket_id: number;
   labels: Array<{ id: number; title: string }>;
-  assignees: Array<{ id: number; name: string; username: string }>;
+  created_by: { id: number; name: string; username: string };
   created: string;
   updated: string;
+}
+
+function pickTask(raw: Record<string, unknown>): Task {
+  return {
+    id: raw.id as number,
+    title: raw.title as string,
+    description: raw.description as string,
+    done: raw.done as boolean,
+    done_at: raw.done_at as string | null,
+    due_date: raw.due_date as string | null,
+    project_id: raw.project_id as number,
+    bucket_id: raw.bucket_id as number,
+    labels: raw.labels as Task["labels"],
+    created_by: raw.created_by as Task["created_by"],
+    created: raw.created as string,
+    updated: raw.updated as string,
+  };
 }
 
 export interface GetTasksOptions {
@@ -48,11 +66,11 @@ export async function getTasks(
   }
   const query = buildFilter(conditions);
 
-  if (projectId !== undefined) {
-    return client.request<Task[]>(`/projects/${projectId}/tasks${query}`);
-  }
+  const path =
+    projectId !== undefined ? `/projects/${projectId}/tasks${query}` : `/tasks${query}`;
+  const raw = await client.request<Record<string, unknown>[]>(path);
 
-  return client.request<Task[]>(`/tasks${query}`);
+  return raw.map(pickTask);
 }
 
 export async function createTask(
@@ -60,10 +78,11 @@ export async function createTask(
   input: CreateTaskInput
 ): Promise<Task> {
   const { project_id, ...body } = input;
-  return client.request<Task>(`/projects/${project_id}/tasks`, {
+  const raw = await client.request<Record<string, unknown>>(`/projects/${project_id}/tasks`, {
     method: "PUT",
     body,
   });
+  return pickTask(raw);
 }
 
 export async function updateTask(
@@ -71,8 +90,9 @@ export async function updateTask(
   taskId: number,
   input: UpdateTaskInput
 ): Promise<Task> {
-  return client.request<Task>(`/tasks/${taskId}`, {
+  const raw = await client.request<Record<string, unknown>>(`/tasks/${taskId}`, {
     method: "POST",
     body: input,
   });
+  return pickTask(raw);
 }
