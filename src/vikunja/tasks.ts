@@ -1,4 +1,5 @@
 import { VikunjaClient } from "./client.js";
+import { buildFilter } from "./filters.js";
 
 export interface Task {
   id: number;
@@ -25,11 +26,11 @@ export async function getTasks(
 ): Promise<Task[]> {
   const { projectId, includeDone = false } = options;
 
-  const params = new URLSearchParams();
+  const conditions = [];
   if (!includeDone) {
-    params.set("filter", "done = false");
+    conditions.push({ field: "done", op: "=", value: false });
   }
-  const query = params.toString() ? `?${params}` : "";
+  const query = buildFilter(conditions);
 
   if (projectId !== undefined) {
     return client.request<Task[]>(`/projects/${projectId}/tasks${query}`);
